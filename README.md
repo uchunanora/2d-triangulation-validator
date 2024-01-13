@@ -73,8 +73,8 @@ Create a dataset representing the triangulation using existing software, such as
 
 Adjust the dataset to conform to the following template format:
 
-```json
-// Vertex Data
+```bash
+# Vertex Data
 -0.99999 , 1
 -0.92857 , 1
 -0.99999 , 0.928571
@@ -84,8 +84,8 @@ Adjust the dataset to conform to the following template format:
 1.000000,-1
 ```
 
-```json
-// Triangle Data
+```bash
+# Triangle Data
 1,0,2
 2,3,6
 6,5,2
@@ -95,8 +95,8 @@ Adjust the dataset to conform to the following template format:
 117,132,149
 ```
 
-```json
-// Boundary Data
+```bash
+# Boundary Data
 0
 2
 3
