@@ -46,7 +46,66 @@ details: https://gmplib.org/
 You can try PSTV in [`examples`](./examples/) directory.
 
 
+
+
 ## Usage Example
+
+### Create Dataset
+
+<p align="center">
+    <img src="./assets/square.png" width="40%">
+    <img src="./assets/Lshaped.png" width="40.178%">
+</p>
+
+Create a dataset representing the triangulation using existing software, such as FreeFEM, MATLAB, Gmsh, CGAL, etc. The dataset representing triangulation includes the following three components:
+
+1. **Vertex Data**
+    
+    - An array of X and Y coordinates of all nodes constituting the triangulation.
+
+2. **Triangle Data**
+
+    - An array of indices for the 3 nodes constituting each triangle.
+
+3. **Boundary Data**
+
+    - Clockwise array of indices representing the nodes on the boundary.
+
+Adjust the dataset to conform to the following template format:
+
+```json
+// Vertex Data
+-0.99999 , 1
+-0.92857 , 1
+-0.99999 , 0.928571
+...
+0.928572,-1
+1.000000,-0.9285714
+1.000000,-1
+```
+
+```json
+// Triangle Data
+1,0,2
+2,3,6
+6,5,2
+...
+168,137,167
+138,109,137
+117,132,149
+```
+
+```json
+// Boundary Data
+0
+2
+3
+...
+989
+994
+997
+```
+### Validate Dataset
 
 ## Demo Application
 
