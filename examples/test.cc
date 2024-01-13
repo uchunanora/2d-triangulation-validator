@@ -1,5 +1,6 @@
 #include <iostream>
 #include <pstv/dataset.hpp>
+#include <pstv/varidation.hpp>
 
 
 /***********************************************************/
@@ -29,5 +30,8 @@ template<class T> void disp_vv(vector<vector<T>> &vv){
 
 int main(){
     std::string dir = "../data/1000/1/";
-    pstv::Dataset ds(dir+"vert.csv", dir+"tri.csv", dir+"boundary.csv");
+    pstv::Dataset dataset(dir+"vert.csv", dir+"tri.csv", dir+"boundary.csv");
+    pstv::Validation validation;
+    double a = validation.orientation(dataset.vertexes[0],dataset.vertexes[1],dataset.vertexes[2]);
+    std::cout << a << std::endl;
 }
