@@ -73,30 +73,33 @@ Create a dataset representing the triangulation using existing software, such as
 
 Adjust the dataset to conform to the following template format:
 
+Vertex Data
 ```bash
-# Vertex Data
--0.99999 , 1
--0.92857 , 1
--0.99999 , 0.928571
+# X, Y
+-0.99999, 1
+-0.92857, 1
+-0.99999, 0.928571
 ...
 0.928572,-1
 1.000000,-0.9285714
 1.000000,-1
 ```
 
+Triangle Data
 ```bash
-# Triangle Data
-1,0,2
-2,3,6
-6,5,2
+# Index1, Index2, Index3
+1, 0, 2
+2, 3, 6
+6, 5, 2
 ...
-168,137,167
-138,109,137
-117,132,149
+168, 137, 167
+138, 109, 137
+117, 132, 149
 ```
 
+Boundary Data
 ```bash
-# Boundary Data
+# Index
 0
 2
 3
