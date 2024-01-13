@@ -52,10 +52,12 @@ You can try PSTV in [`examples`](./examples/) directory.
 
 ### Create Dataset
 
-<p align="center">
-    <img src="./assets/square.png" width="40%">
-    <img src="./assets/Lshaped.png" width="40.178%">
-</p>
+<table>
+<tr>
+<td><img src="./assets/square.png"></td>
+<td><img src="./assets/Lshaped.png"></td>
+</tr>
+</table>
 
 Create a dataset representing the triangulation using existing software, such as FreeFEM, MATLAB, Gmsh, CGAL, etc. The dataset representing triangulation includes the following three components:
 
