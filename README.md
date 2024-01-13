@@ -35,7 +35,7 @@ sudo apt-get update
 sudo apt-get install libgmp-dev
 ```
 
-Windows
+Windows (Cygwin)
 
 Install libgmp-devel and its dependencies.
 
@@ -48,6 +48,6 @@ You can try PSTV in [`examples`](./examples/) directory.
 
 ## Usage Example
 
-
+## Demo Application
 
 ## Acknowledgements
