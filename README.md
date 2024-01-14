@@ -64,7 +64,7 @@ You can try PSTV in [`examples`](./examples/) directory.
 </tr>
 </table>
 
-Create a dataset representing the triangulation using existing software, such as FreeFEM, MATLAB, Gmsh, CGAL, etc. The dataset representing triangulation includes the following three components:
+Create a dataset representing the triangulation using existing software, such as [FreeFEM](https://freefem.org/), [MATLAB](https://www.mathworks.com/products/matlab.html), [Gmsh](https://gmsh.info/), [CGAL](https://www.cgal.org/), etc. The dataset representing triangulation includes the following three components:
 
 1. **Vertex Data**
     
