@@ -1,7 +1,7 @@
 # PSTV (2D Triangulation Validator)
 
 <p align="center">
-    <image src="./assets/verificationDemo.gif" width="90%">
+    <image src="./assets/verificationDemo.gif" width="50%">
 </p>
 
 # Polygonal Sequence-driven Triangulation Validator: An Incremental Approach to 2D Triangulation Verification
