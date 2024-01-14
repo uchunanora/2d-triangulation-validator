@@ -8,13 +8,11 @@
 #include <utils/display.hpp>
 #include <vector>
 
-using std::vector;
-
 namespace pstv {
 class ValidatorTriangulation {
   pstv::Validation validation;
   pstv::Dataset dataset;
-  vector<int> polygon;
+  std::vector<int> polygon;
   lib_interval_tree::interval_tree<lib_interval_tree::interval<double>> interval_tree_x;
   lib_interval_tree::interval_tree<lib_interval_tree::interval<double>> interval_tree_y;
 
@@ -64,8 +62,8 @@ private:
     int index_b_of_polygon = std::distance(polygon.begin(), ret_b);
     auto ret_c = std::find(polygon.begin(), polygon.end(), vertex_index_c);
     int index_c_of_polygon = std::distance(polygon.begin(), ret_c);
-    vector<int> candidates_pol;
-    vector<vector<vector<double>>> candidates;
+    std::vector<int> candidates_pol;
+    std::vector<std::vector<std::vector<double>>> candidates;
     if (ret_c != polygon.end()) {
       if ((index_b_of_polygon + 1) % polygon.size() == index_c_of_polygon % polygon.size()) {
         if (validation.orientation(dataset.vertexes[vertex_index_a], dataset.vertexes[vertex_index_b], dataset.vertexes[vertex_index_c]) > 0) {
@@ -134,7 +132,7 @@ private:
         insert_interval_tree_x(vertex_index_b, vertex_index_c);
         insert_interval_tree_y(vertex_index_a, vertex_index_c);
         insert_interval_tree_y(vertex_index_b, vertex_index_c);
-        vector<int>::iterator itr;
+        std::vector<int>::iterator itr;
         itr = std::find(polygon.begin(), polygon.end(), vertex_index_a);
         polygon.insert(itr + 1, vertex_index_c);
         dataset.unprocessed_set.erase(triangle_index);
@@ -149,8 +147,8 @@ private:
     return 0;
   }
 
-  vector<int> init_polygon(int init_triangle_index) {
-    vector<int> polygon(3, 0);
+  std::vector<int> init_polygon(int init_triangle_index) {
+    std::vector<int> polygon(3, 0);
     polygon.reserve(dataset.vertexes.size());
     for (size_t i = 0; i < 3; ++i) {
       polygon[i] = dataset.triangles[init_triangle_index][i];
@@ -167,10 +165,10 @@ private:
     }
   }
 
-  void update_triangle_clockwise(vector<int> &polygon, int triangle_index) {
-    vector<double> vertex_a = dataset.vertexes[polygon[0]];
-    vector<double> vertex_b = dataset.vertexes[polygon[1]];
-    vector<double> vertex_c = dataset.vertexes[polygon[2]];
+  void update_triangle_clockwise(std::vector<int> &polygon, int triangle_index) {
+    std::vector<double> vertex_a = dataset.vertexes[polygon[0]];
+    std::vector<double> vertex_b = dataset.vertexes[polygon[1]];
+    std::vector<double> vertex_c = dataset.vertexes[polygon[2]];
     double orientation = validation.orientation(vertex_a, vertex_b, vertex_c);
     if (orientation == 0) {
       std::cout << "Triangulation is NOT verified !" << std::endl;
@@ -183,8 +181,8 @@ private:
 
   int check_boundary() {
     if (dataset.unprocessed_set.size() == 0) {
-      vector<int> boundary_for_check = dataset.boundaries;
-      vector<int> polygon_for_check = polygon;
+      std::vector<int> boundary_for_check = dataset.boundaries;
+      std::vector<int> polygon_for_check = polygon;
       if (boundary_for_check.size() == polygon.size()) {
         auto ret = std::find(boundary_for_check.begin(), boundary_for_check.end(), polygon[0]);
         int start = std::distance(boundary_for_check.begin(), ret);
@@ -225,17 +223,17 @@ private:
   }
 
   int get_another_vertex_index_from_triangles(int vertex_index_a, int vertex_index_b, int triangle_index) {
-    vector<int> vector_vertex_index_c = dataset.triangles[triangle_index];
+    std::vector<int> vector_vertex_index_c = dataset.triangles[triangle_index];
     vector_vertex_index_c.erase(std::remove(vector_vertex_index_c.begin(), vector_vertex_index_c.end(), vertex_index_a), vector_vertex_index_c.end());
     vector_vertex_index_c.erase(std::remove(vector_vertex_index_c.begin(), vector_vertex_index_c.end(), vertex_index_b), vector_vertex_index_c.end());
     int vertex_index_c = vector_vertex_index_c[0];
     return vertex_index_c;
   }
 
-  vector<vector<vector<double>>> get_overlap_candidates(vector<double> vertex1, vector<double> vertex2) {
-    vector<vector<vector<double>>> overlap_intervals_x;
-    vector<vector<vector<double>>> overlap_intervals_y;
-    vector<vector<vector<double>>> candidates;
+  std::vector<std::vector<std::vector<double>>> get_overlap_candidates(std::vector<double> vertex1, std::vector<double> vertex2) {
+    std::vector<std::vector<std::vector<double>>> overlap_intervals_x;
+    std::vector<std::vector<std::vector<double>>> overlap_intervals_y;
+    std::vector<std::vector<std::vector<double>>> candidates;
     overlap_intervals_x = get_overlap_intervals_x(vertex1, vertex2);
     overlap_intervals_y = get_overlap_intervals_y(vertex1, vertex2);
     for (int i = 0; i < overlap_intervals_x.size(); i++) {
@@ -249,7 +247,7 @@ private:
     return candidates;
   }
 
-  bool vv_equal(vector<double> p1, vector<double> p2, vector<double> q1, vector<double> q2) {
+  bool vv_equal(std::vector<double> p1, std::vector<double> p2, std::vector<double> q1, std::vector<double> q2) {
     if (p1 == q1) {
       if (p2 == q2) {
         return true;
@@ -294,8 +292,8 @@ private:
     });
   }
 
-  vector<vector<vector<double>>> get_overlap_intervals_x(vector<double> vertex1, vector<double> vertex2) {
-    vector<vector<vector<double>>> overlap_intervals;
+  std::vector<std::vector<std::vector<double>>> get_overlap_intervals_x(std::vector<double> vertex1, std::vector<double> vertex2) {
+    std::vector<std::vector<std::vector<double>>> overlap_intervals;
     interval_tree_x.overlap_find_all(lib_interval_tree::make_safe_interval<double>(vertex1[0], vertex2[0]), [&overlap_intervals](auto iter) {
       overlap_intervals.push_back(iter.segment());
       return true;
@@ -303,8 +301,8 @@ private:
     return overlap_intervals;
   }
 
-  vector<vector<vector<double>>> get_overlap_intervals_y(vector<double> vertex1, vector<double> vertex2) {
-    vector<vector<vector<double>>> overlap_intervals;
+  std::vector<std::vector<std::vector<double>>> get_overlap_intervals_y(std::vector<double> vertex1, std::vector<double> vertex2) {
+    std::vector<std::vector<std::vector<double>>> overlap_intervals;
     interval_tree_y.overlap_find_all(lib_interval_tree::make_safe_interval<double>(vertex1[1], vertex2[1]), [&overlap_intervals](auto iter) {
       overlap_intervals.push_back(iter.segment());
       return true;

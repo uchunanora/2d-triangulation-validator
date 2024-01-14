@@ -7,6 +7,8 @@
 int main() {
   std::string dir = "../data/1000/1/";
   pstv::Dataset dataset(dir + "vert.csv", dir + "tri.csv", dir + "boundary.csv");
-  pstv::ValidatorTriangulation vt;
-  bool v = vt.validate(dataset);
+  if (dataset.check_overlap_vertexes()) {
+    pstv::ValidatorTriangulation vt;
+    bool v = vt.validate(dataset);
+  }
 }

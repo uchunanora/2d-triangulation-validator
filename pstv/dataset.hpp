@@ -33,18 +33,17 @@ public:
   };
 
   bool check_overlap_vertexes() {
-    size_t flag = 1;
 #pragma omp parallel for
     for (size_t i = 0; i < vertexes.size() - 1; ++i) {
       for (size_t j = i + 1; j < vertexes.size(); ++j) {
         if (vertexes[i] == vertexes[j]) {
           std::cout << "Vertexes Overlap!" << std::endl;
           std::cout << "index_set: (" << i << ", " << j << ")" << std::endl;
-          flag = 0; // overlap
+          return false; // overlap
         }
       }
     }
-    return flag;
+    return true;
   }
 
 private:
