@@ -59,8 +59,8 @@ You can try PSTV in [`examples`](./examples/) directory.
 
 <table>
 <tr>
-<td><img src="./assets/square.png"></td>
-<td><img src="./assets/Lshaped.png"></td>
+<td><p align="center"><img src="./assets/square.png" width="80%"></p></td>
+<td><p align="center"><img src="./assets/Lshaped.png" width="80%"></p></td>
 </tr>
 </table>
 
