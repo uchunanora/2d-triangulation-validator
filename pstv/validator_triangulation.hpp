@@ -24,6 +24,7 @@ public:
     int flag = 0;
     int pre_pattern = 0;
     dataset = ds;
+    setup_data();
     dataset.unprocessed_set.erase(init_tri_index);
     polygon = init_polygon(init_tri_index);
     init_interval_tree();
@@ -55,7 +56,14 @@ public:
   }
 
 private:
-  int _validate(int &pre_pattern, int vertex_index_a, int vertex_index_b, int vertex_index_c, int triangle_index) {
+  void setup_data() {
+    dataset.set_edge_map();
+    dataset.set_boundary_edges();
+    dataset.set_edges();
+    dataset.set_unprocessed_set();
+  }
+
+  bool _validate(int &pre_pattern, int vertex_index_a, int vertex_index_b, int vertex_index_c, int triangle_index) {
     auto ret_a = std::find(polygon.begin(), polygon.end(), vertex_index_a);
     int index_a_of_polygon = std::distance(polygon.begin(), ret_a);
     auto ret_b = std::find(polygon.begin(), polygon.end(), vertex_index_b);
