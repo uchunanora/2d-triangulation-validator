@@ -1,4 +1,3 @@
-#include <iostream>
 #include <pstv/dataset.hpp>
 #include <pstv/validation.hpp>
 #include <pstv/validator_delaunay.hpp>
@@ -13,10 +12,7 @@ int main() {
     bool is_verified_triangulation = vt.validate(dataset);
     if (is_verified_triangulation) {
       pstv::ValidatorDelaunay vd;
-      bool is_verified_delaunay = vd.validate(dataset, true);
-      if (!is_verified_delaunay) {
-        vd.output_new_triangles_data("./new_tri.csv");
-      }
+      bool is_verified_delaunay = vd.validate(dataset);
     }
   }
 }
