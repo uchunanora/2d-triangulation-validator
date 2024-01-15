@@ -47,13 +47,6 @@ Install libgmp-devel and its dependencies.
 
 details: https://gmplib.org/
 
-## Quick Start
-
-You can try PSTV in [`examples`](./examples/) directory.
-
-
-
-
 ## Usage Example
 
 ### Create Dataset
@@ -116,8 +109,82 @@ Boundary Data
 994
 997
 ```
+
 ### Validate Dataset
 
-## Demo Application
+You can try PSTV in [`examples`](./examples/) directory.
 
-## Acknowledgements
+```bash
+g++ -std=c++23 validate.cpp -I.. -lgmpxx -lgmp -O2
+```
+
+We provide a simple code example for using PSTV to validate 2D Delaunay triangulation.
+It is a requirement for the validation of triangulation that the vertexes do not overlap.
+For the validation of Delaunay property, it is a condition that the triangulation is correct.
+
+```c++
+#include <pstv/dataset.hpp>
+#include <pstv/validation.hpp>
+#include <pstv/validator_delaunay.hpp>
+#include <pstv/validator_triangulation.hpp>
+#include <utils/display.hpp>
+
+int main() {
+  std::string dir = "./dataset/square/";
+  pstv::Dataset dataset(
+    dir + "vertexes.csv",
+    dir + "triangles.csv",
+    dir + "boundaries.csv"
+  );
+  if (dataset.check_overlap_vertexes()) {
+    pstv::ValidatorTriangulation vt;
+    bool is_verified_triangulation = vt.validate(dataset);
+    if (is_verified_triangulation) {
+      pstv::ValidatorDelaunay vd;
+      bool is_verified_delaunay = vd.validate(dataset);
+    }
+  }
+}
+```
+
+### Modify Triangulation
+
+In the verification of Delaunay property, it is possible to rectify a triangulation so that all edges satisfy the local Delaunay property by flipping edges that do not meet this criterion.
+You can output the corrected Triangles data.
+
+```c++
+#include <pstv/dataset.hpp>
+#include <pstv/validation.hpp>
+#include <pstv/validator_delaunay.hpp>
+#include <pstv/validator_triangulation.hpp>
+#include <utils/display.hpp>
+
+int main() {
+  std::string dir = "./dataset/nonVerifiedDelaunay/";
+  pstv::Dataset dataset(
+    dir + "vertexes.csv",
+    dir + "triangles.csv",
+    dir + "boundaries.csv"
+  );
+  if (dataset.check_overlap_vertexes()) {
+    pstv::ValidatorTriangulation vt;
+    bool is_verified_triangulation = vt.validate(dataset);
+    if (is_verified_triangulation) {
+      pstv::ValidatorDelaunay vd;
+      bool is_verified_delaunay = vd.validate(dataset, true);
+      if (!is_verified_delaunay) {
+        std::string outpit_dir = "./new_tri.csv";
+        vd.output_new_triangles_data(outpit_dir);
+      }
+    }
+  }
+}
+```
+
+## Citing PSTV
+
+If you use PSTV in your publication, please cite it by using the following BibTeX entry.
+
+```bibtex
+
+```
