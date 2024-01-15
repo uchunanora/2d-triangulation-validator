@@ -1,6 +1,7 @@
 #ifndef VALIDATOR_DELAUNAY_HPP
 #define VALIDATOR_DELAUNAY_HPP
 
+#include <iostream>
 #include <pstv/dataset.hpp>
 #include <pstv/validation.hpp>
 #include <vector>
