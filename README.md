@@ -11,6 +11,7 @@
 Polygonal Sequence-driven Triangulation Validator (PSTV) is an algorithm to ensure the correctness of 2D Delaunay triangulation.
 It can be easily utilized by installing the C++ header files.
 
+[![arXiv](https://img.shields.io/badge/arXiv-2401.08242-b31b1b.svg)](https://arxiv.org/abs/2401.08242)
 
 ## Features
 
@@ -186,5 +187,12 @@ int main() {
 If you use PSTV in your publication, please cite it by using the following BibTeX entry.
 
 ```bibtex
-
+@misc{sawai2024polygonal,
+      title={Polygonal Sequence-driven Triangulation Validator: An Incremental Approach to 2D Triangulation Verification}, 
+      author={Sora Sawai and Kazuaki Tanaka and Katsuhisa Ozaki and Shin'ichi Oishi},
+      year={2024},
+      eprint={2401.08242},
+      archivePrefix={arXiv},
+      primaryClass={cs.CG}
+}
 ```
