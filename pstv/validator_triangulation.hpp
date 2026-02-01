@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <pstv/dataset.hpp>
-#include <pstv/interval-tree/interval_tree.hpp>
+#include <pstv/rtree/rtree.hpp>
 #include <pstv/validation.hpp>
 #include <utils/display.hpp>
 #include <vector>
@@ -13,8 +13,7 @@ class ValidatorTriangulation {
   pstv::Validation validation;
   pstv::Dataset dataset;
   std::vector<int> polygon;
-  lib_interval_tree::interval_tree<lib_interval_tree::interval<double>> interval_tree_x;
-  lib_interval_tree::interval_tree<lib_interval_tree::interval<double>> interval_tree_y;
+  lib_rtree::rtree_t rtree_;
 
 public:
   explicit ValidatorTriangulation(){};
@@ -27,7 +26,7 @@ public:
     setup_data();
     dataset.unprocessed_set.erase(init_tri_index);
     polygon = init_polygon(init_tri_index);
-    init_interval_tree();
+    init_rtree();
     while (1) {
       index = index % polygon.size();
       if (check_boundary() == 0) {
@@ -71,22 +70,19 @@ private:
     auto ret_c = std::find(polygon.begin(), polygon.end(), vertex_index_c);
     int index_c_of_polygon = std::distance(polygon.begin(), ret_c);
     std::vector<int> candidates_pol;
-    std::vector<std::vector<std::vector<double>>> candidates;
+    std::vector<std::pair<std::vector<double>, std::vector<double>>> candidates;
     if (ret_c != polygon.end()) {
       if ((index_b_of_polygon + 1) % polygon.size() == index_c_of_polygon % polygon.size()) {
         if (validation.orientation(dataset.vertexes[vertex_index_a], dataset.vertexes[vertex_index_b], dataset.vertexes[vertex_index_c]) > 0) {
-          remove_interval_tree_x(vertex_index_a, vertex_index_b);
-          remove_interval_tree_y(vertex_index_a, vertex_index_b);
+          remove_rtree(vertex_index_a, vertex_index_b);
           candidates = get_overlap_candidates(dataset.vertexes[vertex_index_a], dataset.vertexes[vertex_index_c]);
           for (const auto &candidate : candidates) {
-            if (validation.intersection(dataset.vertexes[vertex_index_a], dataset.vertexes[vertex_index_c], candidate[0], candidate[1]) == -1) {
+            if (validation.intersection(dataset.vertexes[vertex_index_a], dataset.vertexes[vertex_index_c], candidate.first, candidate.second) == -1) {
               return true;
             }
           }
-          remove_interval_tree_x(vertex_index_b, vertex_index_c);
-          remove_interval_tree_y(vertex_index_b, vertex_index_c);
-          insert_interval_tree_x(vertex_index_a, vertex_index_c);
-          insert_interval_tree_y(vertex_index_a, vertex_index_c);
+          remove_rtree(vertex_index_b, vertex_index_c);
+          insert_rtree(vertex_index_a, vertex_index_c);
           polygon.erase(ret_b);
           dataset.unprocessed_set.erase(triangle_index);
           pre_pattern = 1;
@@ -118,11 +114,10 @@ private:
             return true;
           }
         }
-        remove_interval_tree_x(vertex_index_a, vertex_index_b);
-        remove_interval_tree_y(vertex_index_a, vertex_index_b);
+        remove_rtree(vertex_index_a, vertex_index_b);
         candidates = get_overlap_candidates(dataset.vertexes[vertex_index_a], dataset.vertexes[vertex_index_c]);
         for (const auto &candidate : candidates) {
-          if (validation.intersection(dataset.vertexes[vertex_index_a], dataset.vertexes[vertex_index_c], candidate[0], candidate[1]) == -1) {
+          if (validation.intersection(dataset.vertexes[vertex_index_a], dataset.vertexes[vertex_index_c], candidate.first, candidate.second) == -1) {
             std::cout << "Triangulation is NOT verified !" << std::endl;
             std::cout << "Error: Intersection" << std::endl;
             return true;
@@ -130,16 +125,14 @@ private:
         }
         candidates = get_overlap_candidates(dataset.vertexes[vertex_index_b], dataset.vertexes[vertex_index_c]);
         for (const auto &candidate : candidates) {
-          if (validation.intersection(dataset.vertexes[vertex_index_b], dataset.vertexes[vertex_index_c], candidate[0], candidate[1]) == -1) {
+          if (validation.intersection(dataset.vertexes[vertex_index_b], dataset.vertexes[vertex_index_c], candidate.first, candidate.second) == -1) {
             std::cout << "Triangulation is NOT verified !" << std::endl;
             std::cout << "Error: Intersection" << std::endl;
             return true;
           }
         }
-        insert_interval_tree_x(vertex_index_a, vertex_index_c);
-        insert_interval_tree_x(vertex_index_b, vertex_index_c);
-        insert_interval_tree_y(vertex_index_a, vertex_index_c);
-        insert_interval_tree_y(vertex_index_b, vertex_index_c);
+        insert_rtree(vertex_index_a, vertex_index_c);
+        insert_rtree(vertex_index_b, vertex_index_c);
         std::vector<int>::iterator itr;
         itr = std::find(polygon.begin(), polygon.end(), vertex_index_a);
         polygon.insert(itr + 1, vertex_index_c);
@@ -165,11 +158,10 @@ private:
     return polygon;
   }
 
-  void init_interval_tree() {
+  void init_rtree() {
     int polygon_size = polygon.size();
     for (size_t i = 0; i < polygon.size(); ++i) {
-      interval_tree_x.insert(lib_interval_tree::make_safe_interval<double>(dataset.vertexes[polygon[i % polygon_size]][0], dataset.vertexes[polygon[(i + 1) % polygon_size]][0]), {dataset.vertexes[polygon[i % polygon_size]], dataset.vertexes[polygon[(i + 1) % polygon_size]]});
-      interval_tree_y.insert(lib_interval_tree::make_safe_interval<double>(dataset.vertexes[polygon[i % polygon_size]][1], dataset.vertexes[polygon[(i + 1) % polygon_size]][1]), {dataset.vertexes[polygon[i % polygon_size]], dataset.vertexes[polygon[(i + 1) % polygon_size]]});
+      rtree_.insert(dataset.vertexes[polygon[i % polygon_size]], dataset.vertexes[polygon[(i + 1) % polygon_size]]);
     }
   }
 
@@ -238,84 +230,16 @@ private:
     return vertex_index_c;
   }
 
-  std::vector<std::vector<std::vector<double>>> get_overlap_candidates(std::vector<double> vertex1, std::vector<double> vertex2) {
-    std::vector<std::vector<std::vector<double>>> overlap_intervals_x;
-    std::vector<std::vector<std::vector<double>>> overlap_intervals_y;
-    std::vector<std::vector<std::vector<double>>> candidates;
-    overlap_intervals_x = get_overlap_intervals_x(vertex1, vertex2);
-    overlap_intervals_y = get_overlap_intervals_y(vertex1, vertex2);
-    for (int i = 0; i < overlap_intervals_x.size(); i++) {
-      for (int j = 0; j < overlap_intervals_y.size(); j++) {
-        if (overlap_intervals_x[i] == overlap_intervals_y[j]) {
-          candidates.push_back(overlap_intervals_x[i]);
-          break;
-        }
-      }
-    }
-    return candidates;
+  std::vector<std::pair<std::vector<double>, std::vector<double>>> get_overlap_candidates(std::vector<double> vertex1, std::vector<double> vertex2) {
+    return rtree_.query(vertex1, vertex2);
   }
 
-  bool vv_equal(std::vector<double> p1, std::vector<double> p2, std::vector<double> q1, std::vector<double> q2) {
-    if (p1 == q1) {
-      if (p2 == q2) {
-        return true;
-      }
-    } else if (p1 == q2) {
-      if (p2 == q1) {
-        return true;
-      }
-    }
-    return false;
+  void insert_rtree(int vertex_index_1, int vertex_index_2) {
+    rtree_.insert(dataset.vertexes[vertex_index_1], dataset.vertexes[vertex_index_2]);
   }
 
-  void insert_interval_tree_x(int vertex_index_1, int vertex_index_2) {
-    interval_tree_x.insert(
-        lib_interval_tree::make_safe_interval<double>(dataset.vertexes[vertex_index_1][0], dataset.vertexes[vertex_index_2][0]),
-        {{dataset.vertexes[vertex_index_1][0], dataset.vertexes[vertex_index_1][1]}, {dataset.vertexes[vertex_index_2][0], dataset.vertexes[vertex_index_2][1]}});
-  }
-
-  void insert_interval_tree_y(int vertex_index_1, int vertex_index_2) {
-    interval_tree_y.insert(
-        lib_interval_tree::make_safe_interval<double>(dataset.vertexes[vertex_index_1][0], dataset.vertexes[vertex_index_2][0]),
-        {{dataset.vertexes[vertex_index_1][0], dataset.vertexes[vertex_index_1][1]}, {dataset.vertexes[vertex_index_2][0], dataset.vertexes[vertex_index_2][1]}});
-  }
-
-  void remove_interval_tree_x(int vertex_index_1, int vertex_index_2) {
-    interval_tree_x.find_all(lib_interval_tree::make_safe_interval<double>(dataset.vertexes[vertex_index_1][0], dataset.vertexes[vertex_index_2][0]), [this, &vertex_index_1, &vertex_index_2](auto const &iter) {
-      if (vv_equal(dataset.vertexes[vertex_index_1], dataset.vertexes[vertex_index_2], iter.segment()[0], iter.segment()[1])) {
-        interval_tree_x.erase(iter);
-        return false;
-      }
-      return true;
-    });
-  }
-
-  void remove_interval_tree_y(int vertex_index_1, int vertex_index_2) {
-    interval_tree_y.find_all(lib_interval_tree::make_safe_interval<double>(dataset.vertexes[vertex_index_1][1], dataset.vertexes[vertex_index_2][1]), [this, &vertex_index_1, &vertex_index_2](auto const &iter) {
-      if (vv_equal(dataset.vertexes[vertex_index_1], dataset.vertexes[vertex_index_2], iter.segment()[0], iter.segment()[1])) {
-        interval_tree_y.erase(iter);
-        return false;
-      }
-      return true;
-    });
-  }
-
-  std::vector<std::vector<std::vector<double>>> get_overlap_intervals_x(std::vector<double> vertex1, std::vector<double> vertex2) {
-    std::vector<std::vector<std::vector<double>>> overlap_intervals;
-    interval_tree_x.overlap_find_all(lib_interval_tree::make_safe_interval<double>(vertex1[0], vertex2[0]), [&overlap_intervals](auto iter) {
-      overlap_intervals.push_back(iter.segment());
-      return true;
-    });
-    return overlap_intervals;
-  }
-
-  std::vector<std::vector<std::vector<double>>> get_overlap_intervals_y(std::vector<double> vertex1, std::vector<double> vertex2) {
-    std::vector<std::vector<std::vector<double>>> overlap_intervals;
-    interval_tree_y.overlap_find_all(lib_interval_tree::make_safe_interval<double>(vertex1[1], vertex2[1]), [&overlap_intervals](auto iter) {
-      overlap_intervals.push_back(iter.segment());
-      return true;
-    });
-    return overlap_intervals;
+  void remove_rtree(int vertex_index_1, int vertex_index_2) {
+    rtree_.remove(dataset.vertexes[vertex_index_1], dataset.vertexes[vertex_index_2]);
   }
 };
 } // namespace pstv

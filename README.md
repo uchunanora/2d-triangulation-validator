@@ -33,20 +33,28 @@ It can be easily utilized by installing the C++ header files.
 git clone https://github.com/uchunanora/2d-triangulation-validator
 ```
 
-### Step1: Install GMP (GNU Multi-Precision)
+### Step1: Install Dependencies
 
-Ubuntu
+#### macOS (Homebrew)
+
+```bash
+brew install gmp boost
+```
+
+#### Ubuntu
 
 ```bash
 sudo apt-get update
-sudo apt-get install libgmp-dev
+sudo apt-get install libgmp-dev libboost-dev
 ```
 
-Windows (Cygwin)
+#### Windows (Cygwin)
 
-Install libgmp-devel and its dependencies.
+Install libgmp-devel and boost libraries.
 
-details: https://gmplib.org/
+details: 
+- GMP: https://gmplib.org/
+- Boost: https://www.boost.org/
 
 ## Usage Example
 
@@ -115,8 +123,20 @@ Boundary Data
 
 You can try PSTV in [`examples`](./examples/) directory.
 
+#### macOS (Homebrew)
+
 ```bash
-g++ -std=c++23 validate.cpp -I.. -lgmpxx -lgmp -O2
+cd examples
+g++ -std=c++14 validate.cpp -I.. -I/opt/homebrew/include -L/opt/homebrew/lib -lgmpxx -lgmp -O2 -o validate
+./validate
+```
+
+#### Ubuntu
+
+```bash
+cd examples
+g++ -std=c++14 validate.cpp -I.. -lgmpxx -lgmp -O2 -o validate
+./validate
 ```
 
 We provide a simple code example for using PSTV to validate 2D Delaunay triangulation.
