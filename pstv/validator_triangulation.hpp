@@ -44,7 +44,7 @@ public:
           index++;
         }
         int vertex_index_c = get_another_vertex_index_from_triangles(shared_vertex_index_a, shared_vertex_index_b, next_triangle_index);
-        if (_validate(pre_pattern, shared_vertex_index_a, shared_vertex_index_b, vertex_index_c, next_triangle_index)) {
+        if (!_validate(pre_pattern, shared_vertex_index_a, shared_vertex_index_b, vertex_index_c, next_triangle_index)) {
           return false;
         }
         if (pre_pattern != 4) {
@@ -78,7 +78,7 @@ private:
           candidates = get_overlap_candidates(dataset.vertexes[vertex_index_a], dataset.vertexes[vertex_index_c]);
           for (const auto &candidate : candidates) {
             if (validation.intersection(dataset.vertexes[vertex_index_a], dataset.vertexes[vertex_index_c], candidate.first, candidate.second) == -1) {
-              return true;
+              return false;
             }
           }
           remove_rtree(vertex_index_b, vertex_index_c);
@@ -86,16 +86,16 @@ private:
           polygon.erase(ret_b);
           dataset.unprocessed_set.erase(triangle_index);
           pre_pattern = 1;
-          return false; // share 2 sides and 3 points (a,b,c)
+          return true; // share 2 sides and 3 points (a,b,c)
         } else {
           std::cout << "Triangulation is NOT verified !" << std::endl;
           std::cout << "Error: Orientation" << std::endl;
-          return true;
+          return false;
         }
       } else {
         if (validation.orientation(dataset.vertexes[vertex_index_a], dataset.vertexes[vertex_index_b], dataset.vertexes[vertex_index_c]) > 0) {
           pre_pattern = 4;
-          return false; // skip: share 1 side and 3 points or 2 sides and 3 points (c,a,b)
+          return true; // skip: share 1 side and 3 points or 2 sides and 3 points (c,a,b)
         }
       }
     } else {
@@ -104,14 +104,14 @@ private:
           if (validation.orientation(dataset.vertexes[polygon[(index_a_of_polygon + polygon.size() - 1) % polygon.size()]], dataset.vertexes[vertex_index_a], dataset.vertexes[vertex_index_c]) < 0) {
             std::cout << "Triangulation is NOT verified !" << std::endl;
             std::cout << "Error: Orientation" << std::endl;
-            return true;
+            return false;
           }
         }
         if (validation.orientation(dataset.vertexes[vertex_index_a], dataset.vertexes[vertex_index_b], dataset.vertexes[polygon[(index_b_of_polygon + 1) % polygon.size()]]) > 0) {
           if (validation.orientation(dataset.vertexes[vertex_index_b], dataset.vertexes[polygon[(index_b_of_polygon + 1) % polygon.size()]], dataset.vertexes[vertex_index_c]) < 0) {
             std::cout << "Triangulation is NOT verified !" << std::endl;
             std::cout << "Error: Orientation" << std::endl;
-            return true;
+            return false;
           }
         }
         remove_rtree(vertex_index_a, vertex_index_b);
@@ -120,7 +120,7 @@ private:
           if (validation.intersection(dataset.vertexes[vertex_index_a], dataset.vertexes[vertex_index_c], candidate.first, candidate.second) == -1) {
             std::cout << "Triangulation is NOT verified !" << std::endl;
             std::cout << "Error: Intersection" << std::endl;
-            return true;
+            return false;
           }
         }
         candidates = get_overlap_candidates(dataset.vertexes[vertex_index_b], dataset.vertexes[vertex_index_c]);
@@ -128,7 +128,7 @@ private:
           if (validation.intersection(dataset.vertexes[vertex_index_b], dataset.vertexes[vertex_index_c], candidate.first, candidate.second) == -1) {
             std::cout << "Triangulation is NOT verified !" << std::endl;
             std::cout << "Error: Intersection" << std::endl;
-            return true;
+            return false;
           }
         }
         insert_rtree(vertex_index_a, vertex_index_c);
@@ -138,14 +138,14 @@ private:
         polygon.insert(itr + 1, vertex_index_c);
         dataset.unprocessed_set.erase(triangle_index);
         pre_pattern = 2;
-        return false; // share 1 side and 2 points
+        return true; // share 1 side and 2 points
       } else {
         std::cout << "Triangulation is NOT verified !" << std::endl;
         std::cout << "Error: Orientation" << std::endl;
-        return true;
+        return false;
       }
     }
-    return 0;
+    return true;
   }
 
   std::vector<int> init_polygon(int init_triangle_index) {
