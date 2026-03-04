@@ -157,7 +157,7 @@ int main() {
     dir + "triangles.csv",
     dir + "boundaries.csv"
   );
-  if (dataset.check_overlap_vertexes()) {
+  if (dataset.check_degenerate_triangles()) {
     pstv::ValidatorTriangulation vt;
     bool is_verified_triangulation = vt.validate(dataset);
     if (is_verified_triangulation) {
@@ -187,7 +187,7 @@ int main() {
     dir + "triangles.csv",
     dir + "boundaries.csv"
   );
-  if (dataset.check_overlap_vertexes()) {
+  if (dataset.check_degenerate_triangles()) {
     pstv::ValidatorTriangulation vt;
     bool is_verified_triangulation = vt.validate(dataset);
     if (is_verified_triangulation) {
