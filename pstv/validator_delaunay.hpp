@@ -1,6 +1,13 @@
 #ifndef VALIDATOR_DELAUNAY_HPP
 #define VALIDATOR_DELAUNAY_HPP
 
+// Patched validator_delaunay.hpp for Algorithm 8 (3-stage ICT filter).
+//
+// Changes from the original:
+//   1. Call validation.precompute_static_bound() in setup_data()
+//      so that the static filter E is initialized before incircle tests.
+//   2. Expose validation member as public for counter access after validation.
+
 #include <iostream>
 #include <pstv/dataset.hpp>
 #include <pstv/validation.hpp>
@@ -8,11 +15,12 @@
 
 namespace pstv {
 class ValidatorDelaunay {
-  pstv::Validation validation;
   pstv::Dataset dataset;
   int count_non_delaunay = 0;
 
 public:
+  pstv::Validation validation;
+
   explicit ValidatorDelaunay(){};
   bool validate(pstv::Dataset ds, bool mode = false) {
     dataset = ds;
@@ -59,6 +67,7 @@ private:
     dataset.set_edges();
     dataset.set_vertex_map();
     dataset.set_triangle_map();
+    validation.precompute_static_bound(dataset.vertexes);
   }
 
   void _validate(const int triangle_index1, const int triangle_index2) {

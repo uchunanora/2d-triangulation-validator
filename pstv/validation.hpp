@@ -1,6 +1,16 @@
 #ifndef VALIDATION_HPP
 #define VALIDATION_HPP
 
+// Algorithm 8: Static → Semi-static → GMP (3-stage Incircle filter)
+//
+// Drop-in replacement for the original validation.hpp (Algorithm 7).
+// Changes from the original:
+//   1. Added static filter as Stage 1 for incircle test (precomputed E from bounding box)
+//   2. Added stage counters for profiling (cnt_static, cnt_semistatic, cnt_gmp)
+//   3. Added precompute_static_bound() to initialize E before validation
+//
+// The orientation test, online, onsegment, and intersection functions are unchanged.
+
 #include <gmpxx.h>
 #include <math.h>
 #include <vector>
@@ -10,6 +20,9 @@ using std::vector;
 namespace pstv {
 class Validation {
   double u, theta, const6u, u_n, iccerrboundA;
+  double static_E;
+  bool static_E_set;
+
   void filter() {
     int i;
     u = 1.;
@@ -22,13 +35,43 @@ class Validation {
     for (i = 1; i <= 1022; i++) {
       u_n /= 2;
     }
-    iccerrboundA = 10 * u + 144 * u * u + u_n;
+    iccerrboundA = 10 * u + 176 * u * u;
   }
 
 public:
-  explicit Validation() {
+  long long cnt_static;
+  long long cnt_semistatic;
+  long long cnt_gmp;
+  long long cnt_incircle_total;
+
+  explicit Validation() : static_E(0), static_E_set(false),
+      cnt_static(0), cnt_semistatic(0), cnt_gmp(0), cnt_incircle_total(0) {
     filter();
   }
+
+  void precompute_static_bound(const vector<vector<double>>& vertexes) {
+    double x_min = 1e30, x_max = -1e30, y_min = 1e30, y_max = -1e30;
+    for (auto& v : vertexes) {
+      if (v[0] < x_min) x_min = v[0];
+      if (v[0] > x_max) x_max = v[0];
+      if (v[1] < y_min) y_min = v[1];
+      if (v[1] > y_max) y_max = v[1];
+    }
+    double Dx = x_max - x_min;
+    double Dy = y_max - y_min;
+    double worst_lift = Dx * Dx + Dy * Dy;
+    double worst_cross = 2.0 * Dx * Dy;
+    double worst_permanent = 3.0 * worst_lift * worst_cross;
+    static_E = iccerrboundA * worst_permanent;
+    static_E_set = true;
+  }
+
+  double get_static_E() const { return static_E; }
+
+  void reset_counters() {
+    cnt_static = cnt_semistatic = cnt_gmp = cnt_incircle_total = 0;
+  }
+
   double orientation(vector<double> vert_a, vector<double> vert_b, vector<double> vert_c) {
     const double axby = (vert_a[0] - vert_c[0]) * (vert_b[1] - vert_c[1]);
     const double aybx = (vert_a[1] - vert_c[1]) * (vert_b[0] - vert_c[0]);
@@ -49,6 +92,8 @@ public:
   }
 
   double incircle(vector<double> vertex_a, vector<double> vertex_b, vector<double> vertex_c, vector<double> vertex_d) {
+    cnt_incircle_total++;
+
     double vector_ABx = vertex_b[0] - vertex_a[0];
     double vector_ABy = vertex_b[1] - vertex_a[1];
     double vector_ACx = vertex_c[0] - vertex_a[0];
@@ -97,38 +142,58 @@ public:
     double clift = cdx * cdx + cdy * cdy;
 
     double det = alift * (bdxcdy - cdxbdy) + blift * (cdxady - adxcdy) + clift * (adxbdy - bdxady);
-    double permanent = (fabs(bdxcdy) + fabs(cdxbdy)) * alift + (fabs(cdxady) + fabs(adxcdy)) * blift + (fabs(adxbdy) + fabs(bdxady)) * clift;
-    double errbound = iccerrboundA * permanent;
 
-    if (fabs(det) <= errbound) {
-      mpq_class mpq_ax, mpq_ay, mpq_bx, mpq_by, mpq_cx, mpq_cy, mpq_dx, mpq_dy;
-      mpq_ax = vertex_a[0];
-      mpq_ay = vertex_a[1];
-      mpq_bx = vertex_b[0];
-      mpq_by = vertex_b[1];
-      mpq_cx = vertex_c[0];
-      mpq_cy = vertex_c[1];
-      mpq_dx = vertex_d[0];
-      mpq_dy = vertex_d[1];
-      mpq_class mpq_adx = mpq_ax - mpq_dx;
-      mpq_class mpq_bdx = mpq_bx - mpq_dx;
-      mpq_class mpq_cdx = mpq_cx - mpq_dx;
-      mpq_class mpq_ady = mpq_ay - mpq_dy;
-      mpq_class mpq_bdy = mpq_by - mpq_dy;
-      mpq_class mpq_cdy = mpq_cy - mpq_dy;
-      mpq_class mpq_bdxcdy = mpq_bdx * mpq_cdy;
-      mpq_class mpq_cdxbdy = mpq_cdx * mpq_bdy;
-      mpq_class mpq_alift = mpq_adx * mpq_adx + mpq_ady * mpq_ady;
-      mpq_class mpq_cdxady = mpq_cdx * mpq_ady;
-      mpq_class mpq_adxcdy = mpq_adx * mpq_cdy;
-      mpq_class mpq_blift = mpq_bdx * mpq_bdx + mpq_bdy * mpq_bdy;
-      mpq_class mpq_adxbdy = mpq_adx * mpq_bdy;
-      mpq_class mpq_bdxady = mpq_bdx * mpq_ady;
-      mpq_class mpq_clift = mpq_cdx * mpq_cdx + mpq_cdy * mpq_cdy;
-      mpq_class mpq_det = mpq_alift * (mpq_bdxcdy - mpq_cdxbdy) + mpq_blift * (mpq_cdxady - mpq_adxcdy) + mpq_clift * (mpq_adxbdy - mpq_bdxady);
-      int mpq_sgn = sgn(mpq_det);
-      det = mpq_sgn;
+    // Stage 1: Static filter
+    if (static_E_set && fabs(det) > static_E) {
+      cnt_static++;
+      return det;
     }
+
+    // Stage 2: Semi-static filter
+    double alpha_a2_prime = fabs(bdxcdy) + fabs(cdxbdy);
+    double alpha_b2_prime = fabs(cdxady) + fabs(adxcdy);
+    double alpha_c2_prime = fabs(adxbdy) + fabs(bdxady);
+    double beta_a = alift * alpha_a2_prime;
+    double beta_b = blift * alpha_b2_prime;
+    double beta_c = clift * alpha_c2_prime;
+    double permanent = beta_a + beta_b + beta_c;
+    double omega = (alpha_a2_prime + alift) + (alpha_b2_prime + blift) + (alpha_c2_prime + clift) + 1.0;
+    double errbound = iccerrboundA * permanent + u_n * omega;
+
+    if (fabs(det) > errbound) {
+      cnt_semistatic++;
+      return det;
+    }
+
+    // Stage 3: GMP exact arithmetic
+    cnt_gmp++;
+    mpq_class mpq_ax, mpq_ay, mpq_bx, mpq_by, mpq_cx, mpq_cy, mpq_dx, mpq_dy;
+    mpq_ax = vertex_a[0];
+    mpq_ay = vertex_a[1];
+    mpq_bx = vertex_b[0];
+    mpq_by = vertex_b[1];
+    mpq_cx = vertex_c[0];
+    mpq_cy = vertex_c[1];
+    mpq_dx = vertex_d[0];
+    mpq_dy = vertex_d[1];
+    mpq_class mpq_adx = mpq_ax - mpq_dx;
+    mpq_class mpq_bdx = mpq_bx - mpq_dx;
+    mpq_class mpq_cdx = mpq_cx - mpq_dx;
+    mpq_class mpq_ady = mpq_ay - mpq_dy;
+    mpq_class mpq_bdy = mpq_by - mpq_dy;
+    mpq_class mpq_cdy = mpq_cy - mpq_dy;
+    mpq_class mpq_bdxcdy = mpq_bdx * mpq_cdy;
+    mpq_class mpq_cdxbdy = mpq_cdx * mpq_bdy;
+    mpq_class mpq_alift = mpq_adx * mpq_adx + mpq_ady * mpq_ady;
+    mpq_class mpq_cdxady = mpq_cdx * mpq_ady;
+    mpq_class mpq_adxcdy = mpq_adx * mpq_cdy;
+    mpq_class mpq_blift = mpq_bdx * mpq_bdx + mpq_bdy * mpq_bdy;
+    mpq_class mpq_adxbdy = mpq_adx * mpq_bdy;
+    mpq_class mpq_bdxady = mpq_bdx * mpq_ady;
+    mpq_class mpq_clift = mpq_cdx * mpq_cdx + mpq_cdy * mpq_cdy;
+    mpq_class mpq_det = mpq_alift * (mpq_bdxcdy - mpq_cdxbdy) + mpq_blift * (mpq_cdxady - mpq_adxcdy) + mpq_clift * (mpq_adxbdy - mpq_bdxady);
+    int mpq_sgn = sgn(mpq_det);
+    det = mpq_sgn;
     return det;
   }
 
