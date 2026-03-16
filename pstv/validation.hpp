@@ -1,15 +1,13 @@
 #ifndef VALIDATION_HPP
 #define VALIDATION_HPP
 
-// Algorithm 8: Static → Semi-static → GMP (3-stage Incircle filter)
+// Algorithm 8: Static -> Semi-static -> GMP (3-stage Incircle filter)
+// + OT Reduction: intersection() short-circuit optimization
 //
-// Drop-in replacement for the original validation.hpp (Algorithm 7).
-// Changes from the original:
-//   1. Added static filter as Stage 1 for incircle test (precomputed E from bounding box)
-//   2. Added stage counters for profiling (cnt_static, cnt_semistatic, cnt_gmp)
-//   3. Added precompute_static_bound() to initialize E before validation
-//
-// The orientation test, online, onsegment, and intersection functions are unchanged.
+// Based on patch/pstv/validation.hpp (Algorithm 8, Sawai applied).
+// Additional change:
+//   4. intersection(): short-circuit when o1*o2 > 0 (both endpoints on same side)
+//      Saves 2 orientation calls per non-intersecting candidate (~50% reduction).
 
 #include <gmpxx.h>
 #include <math.h>
@@ -35,7 +33,7 @@ class Validation {
     for (i = 1; i <= 1022; i++) {
       u_n /= 2;
     }
-    iccerrboundA = 10 * u + 176 * u * u;
+    iccerrboundA = 10 * u + 144 * u * u + u_n;
   }
 
 public:
@@ -43,9 +41,13 @@ public:
   long long cnt_semistatic;
   long long cnt_gmp;
   long long cnt_incircle_total;
+  long long cnt_ot_total;
+  long long cnt_ot_filter;
+  long long cnt_ot_gmp;
 
   explicit Validation() : static_E(0), static_E_set(false),
-      cnt_static(0), cnt_semistatic(0), cnt_gmp(0), cnt_incircle_total(0) {
+      cnt_static(0), cnt_semistatic(0), cnt_gmp(0), cnt_incircle_total(0),
+      cnt_ot_total(0), cnt_ot_filter(0), cnt_ot_gmp(0) {
     filter();
   }
 
@@ -70,13 +72,16 @@ public:
 
   void reset_counters() {
     cnt_static = cnt_semistatic = cnt_gmp = cnt_incircle_total = 0;
+    cnt_ot_total = cnt_ot_filter = cnt_ot_gmp = 0;
   }
 
   double orientation(vector<double> vert_a, vector<double> vert_b, vector<double> vert_c) {
+    cnt_ot_total++;
     const double axby = (vert_a[0] - vert_c[0]) * (vert_b[1] - vert_c[1]);
     const double aybx = (vert_a[1] - vert_c[1]) * (vert_b[0] - vert_c[0]);
     const double det = axby - aybx;
     if (fabs(det) <= theta * (fabs(axby + aybx) + u_n)) {
+      cnt_ot_gmp++;
       mpq_class mpq_ax, mpq_ay, mpq_bx, mpq_by, mpq_cx, mpq_cy, mpq_det;
       mpq_ax = vert_a[0];
       mpq_ay = vert_a[1];
@@ -88,6 +93,7 @@ public:
       int mpq_sgn = sgn(mpq_det); // -1 or 0 or 1
       return mpq_sgn;
     }
+    cnt_ot_filter++;
     return det;
   }
 
@@ -150,15 +156,8 @@ public:
     }
 
     // Stage 2: Semi-static filter
-    double alpha_a2_prime = fabs(bdxcdy) + fabs(cdxbdy);
-    double alpha_b2_prime = fabs(cdxady) + fabs(adxcdy);
-    double alpha_c2_prime = fabs(adxbdy) + fabs(bdxady);
-    double beta_a = alift * alpha_a2_prime;
-    double beta_b = blift * alpha_b2_prime;
-    double beta_c = clift * alpha_c2_prime;
-    double permanent = beta_a + beta_b + beta_c;
-    double omega = (alpha_a2_prime + alift) + (alpha_b2_prime + blift) + (alpha_c2_prime + clift) + 1.0;
-    double errbound = iccerrboundA * permanent + u_n * omega;
+    double permanent = (fabs(bdxcdy) + fabs(cdxbdy)) * alift + (fabs(cdxady) + fabs(adxcdy)) * blift + (fabs(adxbdy) + fabs(bdxady)) * clift;
+    double errbound = iccerrboundA * permanent;
 
     if (fabs(det) > errbound) {
       cnt_semistatic++;
@@ -229,10 +228,13 @@ public:
     return false;
   }
 
+  // [OPT] Short-circuit: skip o3,o4 when o1*o2 > 0 (c,d on same side of a-b)
   int intersection(vector<double> vert_a, vector<double> vert_b, vector<double> vert_c, vector<double> vert_d) {
     double o1, o2, o3, o4;
     o1 = orientation(vert_a, vert_b, vert_c);
     o2 = orientation(vert_a, vert_b, vert_d);
+    if (o1 * o2 > 0)
+      return 1;
     o3 = orientation(vert_c, vert_d, vert_a);
     o4 = orientation(vert_c, vert_d, vert_b);
     if (o1 * o2 < 0 && o3 * o4 < 0)
